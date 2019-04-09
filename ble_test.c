@@ -27,11 +27,14 @@
 #include "bluez/attrib/gatttool.h"
 #include "bluez/btio/btio.h"
 
+#define HCI_NUMBER 0
+#define DEVICE_MAC ""
+
 #define log_debug(...) write_log("DEBUG", __VA_ARGS__)
 #define log_error(...) write_log("ERROR", __VA_ARGS__)
 
 static GMainLoop *main_loop;
-//static GAttrib *attrib;
+static GAttrib *attrib;
 
 static void write_log(const char *level, const char *fmt, ...)
 {
@@ -47,7 +50,6 @@ static void write_log(const char *level, const char *fmt, ...)
     printf("\n");
 }
 
-/*
 static void gatt_connect_callback(GIOChannel *io, GError *err, gpointer user_data)
 {
     if (err)
@@ -60,17 +62,16 @@ static void gatt_connect_callback(GIOChannel *io, GError *err, gpointer user_dat
         log_debug("Gatt connect succeeded");
         
         attrib = g_attrib_new(io, ATT_DEFAULT_LE_MTU, false);
+
+        g_idle_add(read_rssi, NULL);
     }
 }
 
-int ag_connect(const char *mac,
+void ag_connect(const char *mac,
         const char *dst_type,
         const char *sec_level,
-        const char *opt_src,
-        connect_callback_t connect_callback,
-        disconnect_callback_t disconnect_callback)
+        const char *opt_src)
 {
-    // Since our devices follow the 48-bit universal standard, this is public.
     const int OPT_MTU = 0;
     const int OPT_PSM = 0;
     GError * gerr = NULL;
@@ -89,12 +90,10 @@ int ag_connect(const char *mac,
         int tmp_err_code = gerr->code;
         g_error_free(gerr);
         g_main_loop_quit(main_loop);
-        return tmp_err_code;
     }
-
-    return 0;
 }
 
+/*
 int ag_disconnect(void)
 {
     if (attrib)
@@ -118,8 +117,9 @@ int ag_read_characteristic(uint16_t handle, read_characteristic_callback_t callb
     log_debug("Reading char handle %d", handle);
     return gatt_read_char(attrib, handle, read_characteristic_callback, callback);
 }
+*/
 
-int ag_hci_read_local_version(int hci_num, struct ag_hci_version  *ag_ver)
+void ag_hci_read_local_version(int hci_num)
 {
     struct hci_version ver;
     int hci_device_handle = -1;
@@ -131,7 +131,7 @@ int ag_hci_read_local_version(int hci_num, struct ag_hci_version  *ag_ver)
     {
         log_error("Failed to open HCI device for hci%d (err = %d)", hci_num, hci_device_handle);
         g_main_loop_quit(main_loop);
-        return AG_READ_LOCAL_VERSION_FAILED;
+        return;
     }
 
     err = hci_read_local_version(hci_device_handle, &ver, 1000);
@@ -139,35 +139,52 @@ int ag_hci_read_local_version(int hci_num, struct ag_hci_version  *ag_ver)
     {
         log_error("Failed to read local version for hci%d (err = %d)", hci_num, err);
         g_main_loop_quit(main_loop);
-        return AG_READ_LOCAL_VERSION_FAILED;
     }
 
     hciver = hci_vertostr(ver.hci_ver);
 
-    ag_ver->bt_major_ver = ver.hci_ver;
-    ag_ver->bt_rev_ver = ver.hci_rev;
-    ag_ver->bt_ver_str = hciver ? hciver : "n/a";
+    if (hciver)
+    {
+        log_debug("HCI version for hci%d: %s", hci_num, hciver);
+    }
+    else
+    {
+        log_error("Failed to read HCI version");
+        g_main_loop_quit(main_loop);
+    }
 
     hci_close_dev(hci_device_handle);
-
-    return 0;
 }
 
 static gboolean disconnect_device(gpointer data)
 {
+    log_debug("TODO: Disconnect");
+    g_main_loop_quit(main_loop);
     return FALSE;
 }
 
 static gboolean read_rssi(gpointer data)
 {
+    log_debug("TODO: Read RSSI");
+    g_idle_add(disconnect_device, NULL);
     return FALSE;
 }
-*/
 
 static gboolean connect_device(gpointer data)
 {
-    log_debug("Done");
-    g_main_loop_quit(main_loop);
+    char hci_name[5];
+    snprintf(hci_name, 5, "hci%d", HCI_NUMBER);
+
+    ag_connect(DEVICE_MAC, "random", "low", hci_name);
+
+    return FALSE;
+}
+
+static gboolean read_local_version(gpointer data)
+{
+    ag_hci_read_local_version(HCI_NUMBER);
+
+    g_idle_add(connect_device, NULL);
 
     return FALSE;
 }
@@ -176,7 +193,7 @@ int main(void)
 {
     log_debug("Setting up glib loop");
     main_loop = g_main_loop_new(NULL, FALSE);
-    g_idle_add(connect_device, NULL);
+    g_idle_add(read_local_version, NULL);
 
     log_debug("Starting glib loop");
     g_main_loop_run(main_loop);
