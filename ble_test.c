@@ -128,7 +128,7 @@ void ag_hci_read_local_version(int hci_num)
     struct hci_version ver;
     int hci_device_handle = -1;
     int err;
-    char *hciver;
+    char *hciver = NULL;
 
     hci_device_handle = hci_open_dev(hci_num);
     if(hci_device_handle < 0)
@@ -142,7 +142,9 @@ void ag_hci_read_local_version(int hci_num)
     if (err < 0)
     {
         log_error("Failed to read local version for hci%d (err = %d)", hci_num, err);
+        hci_close_dev(hci_device_handle);
         g_main_loop_quit(main_loop);
+        return;
     }
 
     hciver = hci_vertostr(ver.hci_ver);
