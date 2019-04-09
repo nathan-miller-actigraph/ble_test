@@ -28,10 +28,11 @@
 #include "bluez/btio/btio.h"
 
 #define HCI_NUMBER 0
-#define DEVICE_MAC ""
 
 #define log_debug(...) write_log("DEBUG", __VA_ARGS__)
 #define log_error(...) write_log("ERROR", __VA_ARGS__)
+
+static gboolean read_rssi(gpointer data);
 
 static GMainLoop *main_loop;
 static GAttrib *attrib;
@@ -87,7 +88,7 @@ void ag_connect(const char *mac,
     if (gerr)
     {
         log_error("Failed to connect: '%s' (%d)", gerr->message, gerr->code);
-        int tmp_err_code = gerr->code;
+
         g_error_free(gerr);
         g_main_loop_quit(main_loop);
     }
@@ -175,7 +176,10 @@ static gboolean connect_device(gpointer data)
     char hci_name[5];
     snprintf(hci_name, 5, "hci%d", HCI_NUMBER);
 
-    ag_connect(DEVICE_MAC, "random", "low", hci_name);
+    char *mac = (char *)data;
+    log_debug("Connecting to %s", mac);
+
+    ag_connect(mac, "random", "low", hci_name);
 
     return FALSE;
 }
@@ -184,16 +188,24 @@ static gboolean read_local_version(gpointer data)
 {
     ag_hci_read_local_version(HCI_NUMBER);
 
-    g_idle_add(connect_device, NULL);
+    g_idle_add(connect_device, data);
 
     return FALSE;
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
+    if (argc < 2)
+    {
+        log_error("No MAC provided");
+        return -1;
+    }
+
+    char *mac = argv[1];
+
     log_debug("Setting up glib loop");
     main_loop = g_main_loop_new(NULL, FALSE);
-    g_idle_add(read_local_version, NULL);
+    g_idle_add(read_local_version, mac);
 
     log_debug("Starting glib loop");
     g_main_loop_run(main_loop);
