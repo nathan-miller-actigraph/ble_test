@@ -33,6 +33,7 @@
 #define log_error(...) write_log("ERROR", __VA_ARGS__)
 
 static gboolean read_rssi(gpointer data);
+static gboolean disconnect_device(gpointer data);
 
 static GMainLoop *main_loop;
 static GAttrib *attrib;
@@ -107,18 +108,18 @@ int ag_disconnect(void)
     return 0;
 }
 
-/*
 static void read_characteristic_callback(guint8 status, const guint8 *pdu, guint16 len, gpointer user_data)
 {
     log_debug("Read response received with status %d, %d bytes of data", status, len);
+
+    g_idle_add(disconnect_device, NULL);
 }
 
-int ag_read_characteristic(uint16_t handle, read_characteristic_callback_t callback)
+int ag_read_characteristic(uint16_t handle)
 {
     log_debug("Reading char handle %d", handle);
-    return gatt_read_char(attrib, handle, read_characteristic_callback, callback);
+    return gatt_read_char(attrib, handle, read_characteristic_callback, read_characteristic_callback);
 }
-*/
 
 void ag_hci_read_local_version(int hci_num)
 {
@@ -161,13 +162,14 @@ static gboolean disconnect_device(gpointer data)
 {
     ag_disconnect();
     g_main_loop_quit(main_loop);
+
     return FALSE;
 }
 
 static gboolean read_rssi(gpointer data)
 {
-    log_debug("TODO: Read RSSI");
-    g_idle_add(disconnect_device, NULL);
+    ag_read_characteristic(0x1b);
+
     return FALSE;
 }
 
