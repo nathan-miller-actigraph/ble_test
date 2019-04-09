@@ -94,7 +94,6 @@ void ag_connect(const char *mac,
     }
 }
 
-/*
 int ag_disconnect(void)
 {
     if (attrib)
@@ -108,6 +107,7 @@ int ag_disconnect(void)
     return 0;
 }
 
+/*
 static void read_characteristic_callback(guint8 status, const guint8 *pdu, guint16 len, gpointer user_data)
 {
     log_debug("Read response received with status %d, %d bytes of data", status, len);
@@ -159,7 +159,7 @@ void ag_hci_read_local_version(int hci_num)
 
 static gboolean disconnect_device(gpointer data)
 {
-    log_debug("TODO: Disconnect");
+    ag_disconnect();
     g_main_loop_quit(main_loop);
     return FALSE;
 }
