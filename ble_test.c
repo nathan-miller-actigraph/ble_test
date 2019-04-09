@@ -27,6 +27,8 @@
 #include "bluez/attrib/gatttool.h"
 #include "bluez/btio/btio.h"
 
+#define TIME_WIDTH (25)
+
 #define HCI_NUMBER 0
 
 #define log_debug(...) write_log("DEBUG", __VA_ARGS__)
@@ -40,7 +42,14 @@ static GAttrib *attrib;
 
 static void write_log(const char *level, const char *fmt, ...)
 {
-    printf("%-6s", level);
+    char time_string[TIME_WIDTH];
+    struct tm * timeinfo;
+    time_t current_time = time(NULL);
+    timeinfo = localtime (&current_time);
+
+    strftime(time_string, TIME_WIDTH, "%c", timeinfo);
+
+    printf("%-24s %-6s", time_string, level);
 
     va_list args;
     va_start(args, fmt);
@@ -110,8 +119,6 @@ int ag_disconnect(void)
 
 static void read_characteristic_callback(guint8 status, const guint8 *pdu, guint16 len, gpointer user_data)
 {
-    log_debug("Read response received with status %d, %d bytes of data", status, len);
-
     log_debug("RSSI = %d", (gint8)pdu[1]);
 
     g_idle_add(disconnect_device, NULL);
