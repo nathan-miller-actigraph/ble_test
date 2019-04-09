@@ -61,7 +61,7 @@ static void gatt_connect_callback(GIOChannel *io, GError *err, gpointer user_dat
     {
         log_debug("Gatt connect succeeded");
         
-        attrib = g_attrib_new(io, ATT_DEFAULT_LE_MTU, false);
+        attrib = g_attrib_new(io, 23, false);
 
         g_idle_add(read_rssi, NULL);
     }
