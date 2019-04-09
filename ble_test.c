@@ -112,6 +112,8 @@ static void read_characteristic_callback(guint8 status, const guint8 *pdu, guint
 {
     log_debug("Read response received with status %d, %d bytes of data", status, len);
 
+    log_debug("RSSI = %d", (gint8)pdu[1]);
+
     g_idle_add(disconnect_device, NULL);
 }
 
@@ -168,7 +170,7 @@ static gboolean disconnect_device(gpointer data)
 
 static gboolean read_rssi(gpointer data)
 {
-    ag_read_characteristic(0x1b);
+    ag_read_characteristic(28);
 
     return FALSE;
 }
