@@ -32,6 +32,7 @@
 #define HCI_NUMBER 0
 
 #define log_debug(...) write_log("DEBUG", __VA_ARGS__)
+#define log_info(...) write_log("INFO", __VA_ARGS__)
 #define log_error(...) write_log("ERROR", __VA_ARGS__)
 
 static gboolean read_rssi(gpointer data);
@@ -53,7 +54,7 @@ static void write_log(const char *level, const char *fmt, ...)
 
     va_list args;
     va_start(args, fmt);
-    
+
     vprintf(fmt, args);
 
     va_end(args);
@@ -71,7 +72,7 @@ static void gatt_connect_callback(GIOChannel *io, GError *err, gpointer user_dat
     else
     {
         log_debug("Gatt connect succeeded");
-        
+
         attrib = g_attrib_new(io, 23, false);
 
         g_idle_add(read_rssi, NULL);
@@ -214,6 +215,8 @@ int main(int argc, char **argv)
         return -1;
     }
 
+    log_info("START");
+
     char *mac = argv[1];
 
     log_debug("Setting up glib loop");
@@ -225,6 +228,8 @@ int main(int argc, char **argv)
 
     log_debug("Glib loop stopped, unref'ing loop and exiting");
     g_main_loop_unref(main_loop);
+
+    log_info("END");
 
     return 0;
 }
